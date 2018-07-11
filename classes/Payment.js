@@ -79,7 +79,8 @@ function Payment(options) {
         }
 
         if (await(startListening())) {
-            _state = paymentState.initialized;
+            setState(paymentState.initialized);
+            debugLog('listening...');
         }
     }); 
 
@@ -100,7 +101,7 @@ function Payment(options) {
     const /*string*/ generateAddress = () => {
         return exception.try(() => {
             const addr = btcAddrGen({network:_this.getNetworkName()}); 
-            return addr.address; 
+            return addr.address;  
         }); 
     }; 
 
@@ -116,8 +117,7 @@ function Payment(options) {
                 //connect to bitcoin 
                 _blt = new BLT(); 
                 _blt.events.on('connected', () => {
-                    debugLog('connected to ' + (_options.testnet ? 'testnet' : 'mainnet') + ' network'); 
-                    debugLog('listening...'); 
+                    debugLog(`connected to ${(_options.testnet ? 'testnet' : 'mainnet')} network`); 
 
                     _blt.events.on(_receiverAddress, (tx) => {
                         onPaymentDetected(tx);
@@ -147,8 +147,10 @@ function Payment(options) {
      */
     const addTransaction = (tx) => {
         exception.try(() => {
-            if (tx.amount)
+            if (tx.amount) {
                 _totalReceived += tx.amount;
+                debugLog(`total amount received is ${_totalReceived}`);
+            }
 
             if (tx.txid) {
                 _transactions[tx.txid] = {
@@ -174,6 +176,7 @@ function Payment(options) {
 
             if (_totalReceived) {
                 complete = (_totalReceived >= _expectedAmount);
+                debugLog(`total received is ${_totalReceived}, total expected is ${_expectedAmount}`);
             }
             else if (_transactions) {
                 let total = 0; 
@@ -181,6 +184,7 @@ function Payment(options) {
                     total += _transactions[txid].amount;
                 }
                 complete = (total >= _expectedAmount);
+                debugLog(`total received is ${total}, total expected is ${_expectedAmount}`);
 
                 if (complete)
                     _totalReceived = total; 
@@ -196,9 +200,9 @@ function Payment(options) {
      */
     const onPaymentDetected = (tx) => {
         exception.try(() => {            
-            debugLog('transaction detected: ' + JSON.stringify(tx)); 
+            debugLog(`transaction detected: ${JSON.stringify(tx)}`); 
             addTransaction(tx); 
-            _state = paymentState.detected;
+            setState(paymentState.detected);
 
             //TODO: event args
             _event.emit('detected', tx); 
@@ -210,13 +214,15 @@ function Payment(options) {
      */
     const onPaymentConfirmed = () => {
         exception.try(() => {
-            _state = paymentState.confirmed;
+            debugLog(`payment confirmed`); 
+            setState(paymentState.confirmed);
 
             //TODO: event args
             _event.emit('confirmed', { amount: 0, confirmations: 0}); 
 
             //if specified, transfer full amount to main wallet when done 
             if (_options && _options.mainWallet) {
+                debugLog(`transferring payment to ${_options.mainWallet}`); 
                 transfer(_options.mainWallet); 
             }
         });
@@ -231,24 +237,38 @@ function Payment(options) {
     const transfer = async((receiver) => {
         return exception.try(() => {
             const balance = await(transaction.getBalance(_receiverAddress, {network: _this.getNetworkName()})); 
+            debugLog(`balance in ${_receiverAddress} is ${balance}`); 
 
             if (balance) {
-                transaction.sendTransaction({
+                const result = await(transaction.sendTransaction({
                     from: _receiverAddress,
                     to:receiver,
                     privKeyWIF: '',
                     btc: balance, 
                     network: _this.getNetworkName()
-                })
+                })); 
+
+                debugLog(`result of transaction is ${result}`); 
             }
         }); 
     }); 
+
+    /**
+     * set the instance state (_state)
+     * 
+     * @param {string} state 
+     */
+    const setState = (state) => {
+        _state = state; 
+        debugLog(`state set to ${_state}`);
+    }
 
     //property getters 
     /*float*/ this.getExpectedAmount = () => { return _expectedAmount;}; 
     /*uint*/ this.getMinConfirmations = () => { return _minConfirmations;}; 
     /*string*/ this.getReceiverAddress = () => { return _receiverAddress;}; 
     /*string*/ this.getNetworkName = () => { return _options && _options.testnet ? 'testnet': 'mainnet';};
+    /*paymentState*/ this.getState = () => { return _state;};
 
     //property setters 
     /*float*/this.setExpectedAmount = (value) => { _expectedAmount = value; return _expectedAmount;}; 
