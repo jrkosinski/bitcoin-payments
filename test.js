@@ -5,7 +5,7 @@ require('dotenv').config();
 const Payment = require('./index.js').Payment;
 
 const payment = new Payment({
-    address: null, 
+    receiver: null, 
     amount: 0.001,
     confirmations: 7
 });

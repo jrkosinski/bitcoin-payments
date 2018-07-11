@@ -7,6 +7,14 @@ const bitcore = require('bitcore-lib');
 const events = require('events'); 
 const exception = require('./common/exceptions')('PAY'); 
 
+const DEFAULT_MIN_CONFIRMATIONS = 6; 
+
+const paymentState = {
+    initialized, 
+    detected,
+    confirmed
+}; 
+
 /**
  * Payment 
  * 
@@ -35,10 +43,130 @@ const exception = require('./common/exceptions')('PAY');
 function Payment(options) {
     const _this = this;
     const _event = new events.EventEmitter(); 
+    const _transactions = {};
 
     let _expectedAmount = 0; 
-    let _minConfirmations = 6;
+    let _minConfirmations = DEFAULT_MIN_CONFIRMATIONS;
     let _receiverAddress = null; 
+    let _blt = null; 
+    let _state = null; 
+    let _totalReceived = 0; 
+    let _options = options;
+
+    /**
+     * constructor 
+     * 
+     * @param {json} options
+     *  amount: the expected amount to be received
+     *  confirmations: the min number of confirmations to accept the payment (optional)
+     *  receiver: the receiver's address (optional; if not provided one will be created)
+     */
+    const init = (options) => {
+        if (options) {
+            if (options.amount) {
+                _this.setExpectedAmount(options.amount);
+            }
+            if (options.confirmations) {
+                _this.setMinConfirmations(options.confirmations);
+            }
+            if (options.receiver) {
+                _receiverAddress = receiver;
+            } else { 
+                _receiverAddress = await(generateAddress()); 
+            }
+        }
+
+        if (startListening()) {
+            _state = paymentState.initialized;
+        }
+    }; 
+
+    /**
+     * generates a new address for receiving payment
+     * 
+     * @returns
+     *  address public key 
+     */
+    const /*string*/ generateAddress = () => {
+        return exception.try(() => {
+
+        }); 
+    }; 
+
+    /**
+     * starts listening for payment activity on the bitcoin network
+     * 
+     * @returns 
+     *  a boolean indicating success or failure to connect & begin listening 
+     */
+    const /*bool*/ startListening = () => {
+        return new Promise((resolve, reject) => {
+            exception.try(() => {
+                //connect to bitcoin 
+                _blt = new BLT(); 
+                _blt.events.on('connected', () => {
+                    _blt.events.on(_receiverAddress, (tx) => {
+                        onPaymentDetected(tx);
+                    });
+                }); 
+                _blt.connect(); 
+            }, { onError: (e) => {reject(e);}}); 
+        });
+        
+        return exception.try(() => {
+            _blt = new BLT(); 
+            _blt.connect()
+        });
+    }; 
+
+    const addTransaction = (tx) => {
+        exception.try(() => {
+            if (tx.amount)
+                _totalReceived += tx.amount;
+
+            if (tx.txid) {
+                _transactions[tx.txid] = {
+
+                }
+            }
+        }); 
+    }; 
+
+    const /*bool*/ tryConfirmPayment = () => {
+        return exception.try(() => {
+
+        });
+    }; 
+
+    /**
+     * called privately upon first detection of the payment 
+     */
+    const onPaymentDetected = () => {
+        exception.try(() => {            
+            addTransaction(tx); 
+            _state = paymentState.detected;
+
+            //TODO: event args
+            _event.emit('detected', tx); 
+        });
+    };
+
+    /**
+     * called privately upon successful confirmation of the payment 
+     */
+    const onPaymentConfirmed = () => {
+        exception.try(() => {
+            _state = paymentState.confirmed;
+
+            //TODO: event args
+            _event.emit('confirmed', { amount: 0, confirmations: 0}); 
+
+            //if specified, transfer full amount to main wallet when done 
+            if (_options && _options.mainWallet) {
+                //TODO: transfer to main wallet 
+            }
+        });
+    };
 
     //property getters 
     /*float*/ this.getExpectedAmount = () => { return _expectedAmount;}; 
@@ -82,23 +210,10 @@ function Payment(options) {
         });
     };
 
-    /**
-     * constructor 
-     * 
-     * @param {json} options
-     *  amount: the expected amount to be received
-     *  confirmations: the min number of confirmations to accept the payment 
-     */
-    const init = (options) => {
-        if (options) {
-            if (options.amount) {
-                _this.setExpectedAmount(options.amount);
-            }
-            if (options.confirmations) {
-                _this.setMinConfirmations(options.confirmations);
-            }
-        }
-    }; 
-
     init(options); 
+}
+
+module.exports = {
+    Payment: Payment, 
+    paymentState: paymentState
 }

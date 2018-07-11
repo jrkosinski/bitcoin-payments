@@ -16,6 +16,9 @@ module.exports = function excepUtil(logPrefix) {
                     if (options && options.onError) {
                         return options.onError(err); 
                     }
+                    if (options && options.rethrow) {
+                        throw err; 
+                    }
 
                     return options ? options.defaultValue : null; 
                 } catch(e) {}
