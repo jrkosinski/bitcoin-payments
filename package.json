@@ -1,0 +1,25 @@
+{
+  "name": "bitcoin-payments",
+  "version": "1.0.0",
+  "description": "bitcoin payments processor",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrkosinski/bitcoin-payments.git"
+  },
+  "author": "John R. Kosinski",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/jrkosinski/bitcoin-payments/issues"
+  },
+  "homepage": "https://github.com/jrkosinski/bitcoin-payments#readme",
+  "dependencies": {
+    "asyncawait": "^1.0.7",
+    "bitcoin-live-transactions": "0.0.13",
+    "bitcore-lib": "^0.15.0",
+    "dotenv": "^6.0.0"
+  }
+}
