@@ -6,7 +6,7 @@ const BLT = require('bitcoin-live-transactions');
 const bitcore = require('bitcore-lib'); 
 const bitcoinjs = require('bitcoinjs-lib');
 const transaction = require('bitcoin-transaction'); 
-const btcAddrGen = require('btc-address-generator'); 
+//const btcAddrGen = require('btc-address-generator'); 
 const events = require('events'); 
 
 const exception = require('../common/exceptions')('PAY'); 
