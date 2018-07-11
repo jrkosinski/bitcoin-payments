@@ -10,6 +10,7 @@ const events = require('events');
 const exception = require('../common/exceptions')('PAY'); 
 
 const DEFAULT_MIN_CONFIRMATIONS = 6; 
+const DEBUG = true;
 
 const paymentState = {
     initialized: 'initialized', 
@@ -59,9 +60,11 @@ function Payment(options) {
      * constructor 
      * 
      * @param {json} options
-     *  amount: the expected amount to be received
-     *  confirmations: the min number of confirmations to accept the payment (optional)
-     *  receiver: the receiver's address (optional; if not provided one will be created)
+     *  amount (float): the expected amount to be received
+     *  confirmations (uint): the min number of confirmations to accept the payment (optional)
+     *  receiver (string): the receiver's address (optional; if not provided one will be created)
+     *  testnet (boolean): if true, all transactions are on testnet (default: false)
+     *  mainWallet (string): (optional) the wallet to which to send balance upon successful confirmation 
      */
     const init = async((options) => {
         if (options) {
@@ -84,6 +87,14 @@ function Payment(options) {
     }); 
 
     /**
+     * log in debug mode 
+     */
+    const debugLog = (s) => {
+        if (DEBUG) 
+            console.log(s); 
+    }; 
+
+    /**
      * generates a new address for receiving payment
      * 
      * @returns
@@ -91,7 +102,7 @@ function Payment(options) {
      */
     const /*string*/ generateAddress = () => {
         return exception.try(() => {
-            const addr = btcAddrGen(); 
+            const addr = btcAddrGen({network:_options.testnet ? 'testnet': 'mainnet'}); 
             return addr.address; 
         }); 
     }; 
@@ -108,11 +119,20 @@ function Payment(options) {
                 //connect to bitcoin 
                 _blt = new BLT(); 
                 _blt.events.on('connected', () => {
+                    debugLog('connected to ' + (_options.testnet ? 'testnet' : 'mainnet') + ' network'); 
+                    debugLog('listening...'); 
+
                     _blt.events.on(_receiverAddress, (tx) => {
                         onPaymentDetected(tx);
                     });
                     resolve(true);
                 }); 
+
+                //hack blt to allow testnet 
+                if (_options.testnet) {
+                    _blt.insight_servers = ["https://test-insight.bitpay.com/"];
+                    _blt.insight_apis_servers = ["https://test-insight.bitpay.com/api/"]; 
+                }
                 _blt.connect(); 
             }, { onError: (e) => {reject(e);}}); 
         });
@@ -145,8 +165,9 @@ function Payment(options) {
     /**
      * called privately upon first detection of the payment 
      */
-    const onPaymentDetected = () => {
+    const onPaymentDetected = (tx) => {
         exception.try(() => {            
+            debugLog('transaction detected: ' + JSON.stringify(tx)); 
             addTransaction(tx); 
             _state = paymentState.detected;
 

@@ -7,7 +7,9 @@ const Payment = require('./index.js').Payment;
 const payment = new Payment({
     receiver: null, 
     amount: 0.001,
-    confirmations: 7
+    confirmations: 7,
+    network: 'testnet',
+    mainWallet: null 
 });
 
 payment.on('detected', (payment) => {
