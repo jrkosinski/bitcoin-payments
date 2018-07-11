@@ -33,4 +33,6 @@ module.exports = function excepUtil(logPrefix) {
             console.log(logPrefix + ': ' + err); 
         }; 
     }
+
+    return new ExcepUtil();
 };

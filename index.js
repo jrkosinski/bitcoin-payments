@@ -10,6 +10,9 @@ const bitcore = require('bitcore-lib');
 // - listen for number of confirmations 
 // - transfer back into main wallet when done 
 
+const payment = require('./classes/Payment');
+
 module.exports = {
-    Payment: require('./classes/Payment')
+    Payment: payment.Payment,
+    paymentState: payment.paymentState
 }; 

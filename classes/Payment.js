@@ -4,15 +4,17 @@ const async = require('asyncawait/async');
 const await = require('asyncawait/await');
 const BLT = require('bitcoin-live-transactions');
 const bitcore = require('bitcore-lib'); 
+const btcAddrGen = require('btc-address-generator'); 
 const events = require('events'); 
-const exception = require('./common/exceptions')('PAY'); 
+
+const exception = require('../common/exceptions')('PAY'); 
 
 const DEFAULT_MIN_CONFIRMATIONS = 6; 
 
 const paymentState = {
-    initialized, 
-    detected,
-    confirmed
+    initialized: 'initialized', 
+    detected : 'detected',
+    confirmed : 'confirmed'
 }; 
 
 /**
@@ -61,7 +63,7 @@ function Payment(options) {
      *  confirmations: the min number of confirmations to accept the payment (optional)
      *  receiver: the receiver's address (optional; if not provided one will be created)
      */
-    const init = (options) => {
+    const init = async((options) => {
         if (options) {
             if (options.amount) {
                 _this.setExpectedAmount(options.amount);
@@ -72,14 +74,14 @@ function Payment(options) {
             if (options.receiver) {
                 _receiverAddress = receiver;
             } else { 
-                _receiverAddress = await(generateAddress()); 
+                _receiverAddress = generateAddress(); 
             }
         }
 
-        if (startListening()) {
+        if (await(startListening())) {
             _state = paymentState.initialized;
         }
-    }; 
+    }); 
 
     /**
      * generates a new address for receiving payment
@@ -89,7 +91,8 @@ function Payment(options) {
      */
     const /*string*/ generateAddress = () => {
         return exception.try(() => {
-
+            const addr = btcAddrGen(); 
+            return addr.address; 
         }); 
     }; 
 
@@ -108,6 +111,7 @@ function Payment(options) {
                     _blt.events.on(_receiverAddress, (tx) => {
                         onPaymentDetected(tx);
                     });
+                    resolve(true);
                 }); 
                 _blt.connect(); 
             }, { onError: (e) => {reject(e);}}); 
