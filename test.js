@@ -8,10 +8,11 @@ const payment = new Payment({
     amount: 0.001,
     confirmations: 7,
     network: 'testnet',
-    mainWallet: null 
+    mainWallet: null,
+    testnet:true
 });
 
-console.log('waiting for payment to ' + payment.getReceiverAddress()); 
+console.log('waiting for payment of ' + payment.getExpectedAmount() + ' to ' + payment.getReceiverAddress()); 
 
 payment.on('detected', (payment) => {
     console.log('payment detected...');

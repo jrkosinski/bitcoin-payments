@@ -123,7 +123,7 @@ function Payment(options) {
                         onPaymentDetected(tx);
                     });
                     resolve(true);
-                }); 
+                });                 
 
                 //hack blt to allow testnet 
                 if (_options.testnet) {
@@ -131,7 +131,10 @@ function Payment(options) {
                     _blt.insight_apis_servers = ["https://test-insight.bitpay.com/api/"]; 
                 }
                 _blt.connect(); 
-            }, { onError: (e) => {reject(e);}}); 
+            }, { onError: (e) => {
+                exception.handleError(e);
+                resolve(false);
+            }}); 
         });
         
         return exception.try(() => {
@@ -148,14 +151,9 @@ function Payment(options) {
     const addTransaction = (tx) => {
         exception.try(() => {
             if (tx.amount) {
-                _totalReceived += tx.amount;
+                setState(paymentState.detected);
+                _totalReceived += tx.amount/100000000;
                 debugLog(`total amount received is ${_totalReceived}`);
-            }
-
-            if (tx.txid) {
-                _transactions[tx.txid] = {
-                    amount: tx.amount
-                }
             }
 
             if (tryConfirmPayment()) {
@@ -202,7 +200,6 @@ function Payment(options) {
         exception.try(() => {            
             debugLog(`transaction detected: ${JSON.stringify(tx)}`); 
             addTransaction(tx); 
-            setState(paymentState.detected);
 
             //TODO: event args
             _event.emit('detected', tx); 
