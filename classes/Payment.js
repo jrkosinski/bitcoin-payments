@@ -115,6 +115,7 @@ function Payment(options) {
             const wif = keypair.toWIF();
             const address = bitcoinjs.payments.p2pkh({pubkey: keypair.publicKey, network: network});
 
+            //save full address for something we might need to do later 
             _receiverFullAddress = {
                 public: address,
                 private: wif
@@ -163,6 +164,14 @@ function Payment(options) {
     }; 
 
     /**
+     * stop listening (remove all listeners) from bitcoin network 
+     */
+    const stopListening = () => {
+        if (_blt && _blt.events)
+            _blt.events.removeAllListeners(); 
+    }; 
+
+    /**
      * parses & stores a transaction received from bitcoin-live-transactions 
      * 
      * @param {transaction} tx 
@@ -173,10 +182,6 @@ function Payment(options) {
                 setState(paymentState.detected);
                 _totalReceived += tx.amount/100000000;
                 debugLog(`total amount received is ${_totalReceived}`);
-            }
-
-            if (tryConfirmPayment()) {
-                onPaymentConfirmed(); 
             }
         }); 
     }; 
@@ -222,6 +227,11 @@ function Payment(options) {
 
             //TODO: event args
             _event.emit('detected', tx); 
+
+            //confirmed?
+            if (tryConfirmPayment()) {
+                onPaymentConfirmed(); 
+            }
         });
     };
 
@@ -232,9 +242,10 @@ function Payment(options) {
         exception.try(() => {
             debugLog(`payment confirmed`); 
             setState(paymentState.confirmed);
+            stopListening();
 
-            //TODO: event args
-            _event.emit('confirmed', { amount: 0, confirmations: 0}); 
+            //TODO: get the from address & number of confirmations
+            _event.emit('confirmed', { amount: _totalReceived, confirmations: 10, from:''}); 
 
             //if specified, transfer full amount to main wallet when done 
             if (_options && _options.mainWallet) {
@@ -259,7 +270,7 @@ function Payment(options) {
                 const result = await(transaction.sendTransaction({
                     from: _receiverAddress,
                     to:receiver,
-                    privKeyWIF: '',
+                    privKeyWIF: _receiverFullAddress.private,
                     btc: balance, 
                     network: _this.getNetworkName()
                 })); 
@@ -277,7 +288,7 @@ function Payment(options) {
     const setState = (state) => {
         _state = state; 
         debugLog(`state set to ${_state}`);
-    }
+    }; 
 
     //property getters 
     /*float*/ this.getExpectedAmount = () => { return _expectedAmount;}; 
@@ -319,6 +330,7 @@ function Payment(options) {
      */
     this.dispose = () => {
         exception.try(() => {
+            stopListening();
             _event.removeAllListeners(); 
         });
     };

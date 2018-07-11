@@ -5,10 +5,10 @@ require('dotenv').config();
 const Payment = require('./index.js').Payment;
 
 const payment = new Payment({
-    amount: 0.001,
+    amount: 0.0001,
     confirmations: 7,
     network: 'testnet',
-    mainWallet: null,
+    mainWallet: 'mysyjyXetrnkFwkvNmDjmtzC4YktgoGSfW',
     testnet:true
 });
 
