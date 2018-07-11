@@ -4,6 +4,7 @@ const async = require('asyncawait/async');
 const await = require('asyncawait/await');
 const BLT = require('bitcoin-live-transactions');
 const bitcore = require('bitcore-lib'); 
+const transaction = require('bitcoin-transaction'); 
 const btcAddrGen = require('btc-address-generator'); 
 const events = require('events'); 
 
@@ -12,6 +13,7 @@ const exception = require('../common/exceptions')('PAY');
 const DEFAULT_MIN_CONFIRMATIONS = 6; 
 const DEBUG = true;
 
+//state of the instance enum 
 const paymentState = {
     initialized: 'initialized', 
     detected : 'detected',
@@ -62,7 +64,6 @@ function Payment(options) {
      * @param {json} options
      *  amount (float): the expected amount to be received
      *  confirmations (uint): the min number of confirmations to accept the payment (optional)
-     *  receiver (string): the receiver's address (optional; if not provided one will be created)
      *  testnet (boolean): if true, all transactions are on testnet (default: false)
      *  mainWallet (string): (optional) the wallet to which to send balance upon successful confirmation 
      */
@@ -74,11 +75,7 @@ function Payment(options) {
             if (options.confirmations) {
                 _this.setMinConfirmations(options.confirmations);
             }
-            if (options.receiver) {
-                _receiverAddress = receiver;
-            } else { 
-                _receiverAddress = generateAddress(); 
-            }
+            _receiverAddress = generateAddress(); 
         }
 
         if (await(startListening())) {
@@ -102,7 +99,7 @@ function Payment(options) {
      */
     const /*string*/ generateAddress = () => {
         return exception.try(() => {
-            const addr = btcAddrGen({network:_options.testnet ? 'testnet': 'mainnet'}); 
+            const addr = btcAddrGen({network:_this.getNetworkName()}); 
             return addr.address; 
         }); 
     }; 
@@ -143,6 +140,11 @@ function Payment(options) {
         });
     }; 
 
+    /**
+     * parses & stores a transaction received from bitcoin-live-transactions 
+     * 
+     * @param {transaction} tx 
+     */
     const addTransaction = (tx) => {
         exception.try(() => {
             if (tx.amount)
@@ -150,15 +152,42 @@ function Payment(options) {
 
             if (tx.txid) {
                 _transactions[tx.txid] = {
-
+                    amount: tx.amount
                 }
+            }
+
+            if (tryConfirmPayment()) {
+                onPaymentConfirmed(); 
             }
         }); 
     }; 
 
+    /**
+     * attempts to determine whether or not the full payment is complete & confirmed
+     * 
+     * @returns
+     *  true if confirmed 
+     */
     const /*bool*/ tryConfirmPayment = () => {
         return exception.try(() => {
+            let complete = false; 
 
+            if (_totalReceived) {
+                complete = (_totalReceived >= _expectedAmount);
+            }
+            else if (_transactions) {
+                let total = 0; 
+                for (let txid in _transactions) {
+                    total += _transactions[txid].amount;
+                }
+                complete = (total >= _expectedAmount);
+
+                if (complete)
+                    _totalReceived = total; 
+            }
+
+            //TODO: count num confirmations 
+            return complete;
         });
     }; 
 
@@ -188,15 +217,38 @@ function Payment(options) {
 
             //if specified, transfer full amount to main wallet when done 
             if (_options && _options.mainWallet) {
-                //TODO: transfer to main wallet 
+                transfer(_options.mainWallet); 
             }
         });
     };
+
+    /**
+     * transfers all received funds to a different wallet 
+     * 
+     * @param {string} receiver
+     *  the wallet to which to send 
+     */
+    const transfer = async((receiver) => {
+        return exception.try(() => {
+            const balance = await(transaction.getBalance(_receiverAddress, {network: _this.getNetworkName()})); 
+
+            if (balance) {
+                transaction.sendTransaction({
+                    from: _receiverAddress,
+                    to:receiver,
+                    privKeyWIF: '',
+                    btc: balance, 
+                    network: _this.getNetworkName()
+                })
+            }
+        }); 
+    }); 
 
     //property getters 
     /*float*/ this.getExpectedAmount = () => { return _expectedAmount;}; 
     /*uint*/ this.getMinConfirmations = () => { return _minConfirmations;}; 
     /*string*/ this.getReceiverAddress = () => { return _receiverAddress;}; 
+    /*string*/ this.getNetworkName = () => { return _options && _options.testnet ? 'testnet': 'mainnet';};
 
     //property setters 
     /*float*/this.setExpectedAmount = (value) => { _expectedAmount = value; return _expectedAmount;}; 
@@ -234,6 +286,13 @@ function Payment(options) {
             _event.removeAllListeners(); 
         });
     };
+
+    /**
+     * cancels a waiting payment; stops listening for updates 
+     */
+    this.cancel = () => {
+        this.dispose(); 
+    }; 
 
     init(options); 
 }

@@ -5,12 +5,13 @@ require('dotenv').config();
 const Payment = require('./index.js').Payment;
 
 const payment = new Payment({
-    receiver: null, 
     amount: 0.001,
     confirmations: 7,
     network: 'testnet',
     mainWallet: null 
 });
+
+console.log('waiting for payment to ' + payment.getReceiverAddress()); 
 
 payment.on('detected', (payment) => {
     console.log('payment detected...');
