@@ -4,11 +4,13 @@ const async = require('asyncawait/async');
 const await = require('asyncawait/await');
 const BLT = require('bitcoin-live-transactions');
 const bitcore = require('bitcore-lib'); 
+const bitcoinjs = require('bitcoinjs-lib');
 const transaction = require('bitcoin-transaction'); 
 const btcAddrGen = require('btc-address-generator'); 
 const events = require('events'); 
 
 const exception = require('../common/exceptions')('PAY'); 
+const addressUtil = require('../common/address');
 
 const DEFAULT_MIN_CONFIRMATIONS = 6; 
 const DEBUG = true;
@@ -53,6 +55,7 @@ function Payment(options) {
     let _expectedAmount = 0; 
     let _minConfirmations = DEFAULT_MIN_CONFIRMATIONS;
     let _receiverAddress = null; 
+    let _receiverFullAddress = null; 
     let _blt = null; 
     let _state = null; 
     let _totalReceived = 0; 
@@ -100,8 +103,24 @@ function Payment(options) {
      */
     const /*string*/ generateAddress = () => {
         return exception.try(() => {
-            const addr = btcAddrGen({network:_this.getNetworkName()}); 
-            return addr.address;  
+            //const addr = btcAddrGen({network:_this.getNetworkName()}); 
+            //return addr.address;  
+
+            const network = (_options && options.testnet) ? bitcoinjs.networks.testnet : bitcoinjs.networks.mainnet; 
+            
+            const keypair = bitcoinjs.ECPair.makeRandom({
+                network: network,
+                rng: addressUtil.generateRandom
+            }); 
+            const wif = keypair.toWIF();
+            const address = bitcoinjs.payments.p2pkh({pubkey: keypair.publicKey, network: network});
+
+            _receiverFullAddress = {
+                public: address,
+                private: wif
+            }; 
+
+            return _receiverFullAddress.public.address;
         }); 
     }; 
 
