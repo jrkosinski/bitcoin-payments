@@ -17,11 +17,14 @@
   },
   "homepage": "https://github.com/jrkosinski/bitcoin-payments#readme",
   "dependencies": {
+    "async-interval-timer": "^1.0.0",
     "asyncawait": "^1.0.7",
+    "bip32": "^0.1.0",
     "bitcoin-live-transactions": "0.0.13",
     "bitcoin-transaction": "^1.1.1",
     "bitcoinjs-lib": "^3.3.2",
     "bitcore-lib": "^0.15.0",
-    "random-buffer": "^0.1.0"
+    "random-buffer": "^0.1.0",
+    "tiny-secp256k1": "^0.2.2"
   }
 }
