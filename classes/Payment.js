@@ -7,7 +7,7 @@ const bitcore = require('bitcore-lib');
 const bitcoinjs = require('bitcoinjs-lib');
 const transaction = require('bitcoin-transaction'); 
 const events = require('events'); 
-const Timer = require('async-timer');
+const Timer = require('async-interval-timer');
 
 const exception = require('../common/exceptions')('PAY'); 
 const addressUtil = require('../common/address');
