@@ -8,6 +8,7 @@ const bitcore = require('bitcore-lib');
 //TODO: 
 // - listen for number of confirmations 
 // - transfer back into main wallet when done 
+// - allow transaction to be saved so that it can be restored 
 
 const payment = require('./classes/Payment');
 

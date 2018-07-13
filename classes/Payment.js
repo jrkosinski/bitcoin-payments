@@ -172,8 +172,8 @@ function Payment(options) {
         exception.try(() => {
             if (_blt && _blt.events)
                 _blt.events.removeAllListeners(); 
-            if (_timer) 
-                _timer.stop(); 
+            if (_confirmTimer) 
+                _confirmTimer.stop(); 
         });
     }; 
 
