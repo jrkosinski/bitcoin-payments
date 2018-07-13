@@ -19,20 +19,20 @@ const payment = new Payment({
 console.log('waiting for payment of ' + payment.getExpectedAmount() + ' to ' + payment.getReceiverAddress()); 
 
 //react to 'detected' event - payment of some amount has been made 
-payment.on('detected', (payment) => {
+payment.on('detected', (p) => {
     console.log('payment detected...');
-    console.log('amount: ' + payment.amount); 
-    console.log('confirmations: ' + payment.confirmations); 
-    console.log('from: ' + payment.sender); 
+    console.log('amount: ' + p.amount); 
+    console.log('confirmations: ' + p.confirmations); 
+    console.log('from: ' + p.sender); 
 });
 
 //react to 'confirmed' event - payment has been made in full, and confirmed 
 // will be sent to mainWallet now automatically, if mainWallet is specified in payment options
-payment.on('confirmed', (payment) => {
+payment.on('confirmed', (p) => {
     console.log('payment confirmed!');
-    console.log('amount: ' + payment.amount); 
-    console.log('confirmations: ' + payment.confirmations); 
-    console.log('from: ' + payment.sender); 
+    console.log('amount: ' + p.amount); 
+    console.log('confirmations: ' + p.confirmations); 
+    console.log('from: ' + p.sender); 
 
     //call dispose to stop listening to BTC network, processing events, etc.
     payment.dispose();
