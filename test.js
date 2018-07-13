@@ -1,6 +1,6 @@
 'use strict'; 
 
-require('dotenv').config();
+const Payment = require('./index').Payment;
 
 //initiate a payment for 0.0001 bitcoin. 
 //  - amount expected: 0.0001
@@ -33,4 +33,7 @@ payment.on('confirmed', (payment) => {
     console.log('amount: ' + payment.amount); 
     console.log('confirmations: ' + payment.confirmations); 
     console.log('from: ' + payment.sender); 
+
+    //call dispose to stop listening to BTC network, processing events, etc.
+    payment.dispose();
 });

@@ -11,6 +11,7 @@ const events = require('events');
 
 const exception = require('../common/exceptions')('PAY'); 
 const addressUtil = require('../common/address');
+const Timer = require('../common/timer');
 
 const DEFAULT_MIN_CONFIRMATIONS = 6; 
 const DEBUG = true;
@@ -51,6 +52,7 @@ function Payment(options) {
     const _this = this;
     const _event = new events.EventEmitter(); 
     const _transactions = {};
+    const _confirmTimer = new Timer(60000); 
 
     let _expectedAmount = 0; 
     let _minConfirmations = DEFAULT_MIN_CONFIRMATIONS;
@@ -167,8 +169,12 @@ function Payment(options) {
      * stop listening (remove all listeners) from bitcoin network 
      */
     const stopListening = () => {
-        if (_blt && _blt.events)
-            _blt.events.removeAllListeners(); 
+        exception.try(() => {
+            if (_blt && _blt.events)
+                _blt.events.removeAllListeners(); 
+            if (_timer) 
+                _timer.stop(); 
+        });
     }; 
 
     /**
@@ -195,6 +201,7 @@ function Payment(options) {
     const /*bool*/ tryConfirmPayment = () => {
         return exception.try(() => {
             let complete = false; 
+            let confirmed = false;
 
             if (_totalReceived) {
                 complete = (_totalReceived >= _expectedAmount);
@@ -212,8 +219,13 @@ function Payment(options) {
                     _totalReceived = total; 
             }
 
+            //check balance in receiving account
+            const balance = await(transaction.getBalance(_receiverAddress, {network: _this.getNetworkName()})); 
+            debugLog(`balance in ${_receiverAddress} is ${balance}`); 
+            confirmed = (balance >= _expectedAmount); 
+
             //TODO: count num confirmations 
-            return complete;
+            return complete && confirmed;
         });
     }; 
 
@@ -228,10 +240,8 @@ function Payment(options) {
             //TODO: event args
             _event.emit('detected', tx); 
 
-            //confirmed?
-            if (tryConfirmPayment()) {
-                onPaymentConfirmed(); 
-            }
+            //confirmed? start timer
+            startConfirmTimer(); 
         });
     };
 
@@ -254,6 +264,19 @@ function Payment(options) {
             }
         });
     };
+
+    /**
+     * starts a timer that checks periodically to see if the transaction (payment) has been confirmed
+     */
+    const startConfirmTimer = () => {
+        exception.try(() => {            
+            _confirmTimer.start(() => {
+                if (tryConfirmPayment()) {
+                    onPaymentConfirmed(); 
+                }
+            }, true); 
+        });
+    }; 
 
     /**
      * transfers all received funds to a different wallet 
