@@ -24,6 +24,7 @@
     "bitcoin-transaction": "^1.1.1",
     "bitcoinjs-lib": "^3.3.2",
     "bitcore-lib": "^0.15.0",
+    "happy-try-catch": "^1.0.0",
     "random-buffer": "^0.1.0",
     "tiny-secp256k1": "^0.2.2"
   }

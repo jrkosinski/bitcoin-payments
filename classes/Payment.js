@@ -9,7 +9,7 @@ const transaction = require('bitcoin-transaction');
 const events = require('events'); 
 const Timer = require('async-interval-timer');
 
-const exception = require('../common/exceptions')('PAY'); 
+const exception = require('happy-try-catch').create({logPrefix:'PAY'}); 
 const addressUtil = require('../common/address');
 
 const DEFAULT_MIN_CONFIRMATIONS = 6; 
